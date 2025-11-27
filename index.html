@@ -4,6 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Costruisci il tuo mondo</title>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14508a">
+
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -477,5 +483,15 @@ function makeDraggable(el, container){
   el.addEventListener("touchstart", onDown, {passive:false});
 }
 </script>
+  <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .catch(err => console.log('SW error:', err));
+  });
+}
+</script>
+
 </body>
 </html>
+
