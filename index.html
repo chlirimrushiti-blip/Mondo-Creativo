@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Costruisci il tuo mondo</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+
+html,body{
+  height:100%;
+}
+
+body{
+  background:radial-gradient(circle at top,#87cefa,#14508a);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:#fff;
+}
+
+/* layout base */
+#app{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+#titlebar{
+  padding:10px;
+  text-align:center;
+  font-size:28px;
+  font-weight:700;
+}
+
+#layout{
+  flex:1;
+  width:100%;
+  max-width:1200px;
+  display:flex;
+  gap:8px;
+  padding:8px;
+}
+
+/* mondo */
+#world-wrapper{
+  flex:2;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+#world{
+  width:100%;
+  max-width:900px;
+  height:65vh;
+  max-height:600px;
+  border-radius:20px;
+  border:4px solid #000;
+  background:linear-gradient(#87cefa 50%, #5baa3d 50%);
+  position:relative;
+  overflow:hidden;
+}
+
+/* oggetti nel mondo */
+.world-object{
+  position:absolute;
+  width:80px;
+  height:80px;
+  border-radius:16px;
+  border:3px solid #000;
+  background:#fff8e8;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:40px;
+  box-shadow:0 4px 0 #333;
+  cursor:pointer;
+  touch-action:none;
+}
+
+/* pannello laterale */
+#sidebar{
+  flex:1;
+  border-radius:18px;
+  border:4px solid #000;
+  background:rgba(0,0,0,0.35);
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+}
+
+#sidebar h2{
+  font-size:18px;
+  text-align:center;
+  margin-bottom:6px;
+}
+
+/* tab categorie */
+.tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  justify-content:center;
+  margin-bottom:6px;
+}
+
+.tab-btn{
+  padding:4px 7px;
+  border-radius:14px;
+  border:3px solid #000;
+  background:#ffe49b;
+  box-shadow:0 3px 0 #c28a00;
+  font-size:12px;
+  cursor:pointer;
+}
+.tab-btn.active{
+  background:#ffb347;
+}
+
+/* lista oggetti */
+#item-list{
+  flex:1;
+  border-radius:14px;
+  border:3px solid #000;
+  background:rgba(255,255,255,0.9);
+  padding:6px;
+  overflow-y:auto;
+  color:#000;
+}
+
+.item-btn{
+  width:100%;
+  display:flex;
+  align-items:center;
+  padding:6px 4px;
+  margin-bottom:4px;
+  border-radius:12px;
+  border:2px solid #000;
+  background:#ffecc4;
+  cursor:pointer;
+}
+.item-icon{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  border:2px solid #000;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  margin-right:6px;
+}
+.item-label{
+  font-size:14px;
+  font-weight:600;
+}
+
+/* bottoni gestione */
+#sidebar-actions{
+  margin-top:6px;
+  text-align:center;
+}
+
+.btn-small{
+  padding:6px 10px;
+  margin:2px;
+  border-radius:12px;
+  border:3px solid #000;
+  background:#ffb3b3;
+  box-shadow:0 3px 0 #a00000;
+  font-size:13px;
+  cursor:pointer;
+}
+
+/* info */
+#hint{
+  margin-top:4px;
+  font-size:12px;
+  line-height:1.3;
+}
+
+/* responsive mobile */
+@media (max-width:768px){
+  #layout{
+    flex-direction:column;
+  }
+  #world{
+    height:55vh;
+  }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="titlebar">🌍 Costruisci il tuo mondo</div>
+
+  <div id="layout">
+    <div id="world-wrapper">
+      <div id="world"></div>
+    </div>
+
+    <div id="sidebar">
+      <h2>Pannello oggetti</h2>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-cat="alberi">🌲 Alberi</button>
+        <button class="tab-btn" data-cat="fiori">🌼 Fiori</button>
+        <button class="tab-btn" data-cat="animali">🐾 Animali</button>
+        <button class="tab-btn" data-cat="case">🏡 Case</button>
+        <button class="tab-btn" data-cat="recinti">🧱 Terreno</button>
+        <button class="tab-btn" data-cat="cielo">☁️ Cielo</button>
+        <button class="tab-btn" data-cat="extra">⭐ Extra</button>
+        <button class="tab-btn" data-cat="veicoli">🚗 Veicoli</button>
+      </div>
+
+      <div id="item-list"></div>
+
+      <div id="sidebar-actions">
+        <button class="btn-small" onclick="removeLast()">Rimuovi ultimo</button>
+        <button class="btn-small" onclick="clearWorld()">Svuota tutto</button>
+      </div>
+
+      <div id="hint">
+        ➤ Tocca un oggetto nella lista per aggiungerlo nel mondo.<br>
+        ➤ Poi trascinalo con il dito o con il mouse.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== DATI OGGETTI (emoji, pronti per PNG in futuro) ======
+const ITEMS = {
+  alberi: [
+    { name:"Abete", emoji:"🌲" },
+    { name:"Albero tondo", emoji:"🌳" },
+    { name:"Albero di Natale", emoji:"🎄" },
+    { name:"Palma", emoji:"🌴" },
+    { name:"Cactus", emoji:"🌵" },
+    { name:"Albero autunno", emoji:"🍁" },
+    { name:"Foglie cadute", emoji:"🍂" },
+    { name:"Fungo bosco", emoji:"🍄" },
+    { name:"Ramo secco", emoji:"🪵" },
+    { name:"Boschetto", emoji:"🌲" }
+  ],
+  fiori: [
+    { name:"Fiore rosso", emoji:"🌹" },
+    { name:"Fiore giallo", emoji:"🌻" },
+    { name:"Fiore bianco", emoji:"🌼" },
+    { name:"Fiore rosa", emoji:"🌸" },
+    { name:"Bouquet", emoji:"💐" },
+    { name:"Fiori tropicali", emoji:"🌺" },
+    { name:"Tulipano", emoji:"🌷" },
+    { name:"Spiga", emoji:"🌾" },
+    { name:"Cespuglio verde", emoji:"🌿" },
+    { name:"Cespuglio fiorito", emoji:"🌺" }
+  ],
+  animali: [
+    { name:"Coniglio", emoji:"🐰" },
+    { name:"Cane", emoji:"🐶" },
+    { name:"Gatto", emoji:"🐱" },
+    { name:"Topo", emoji:"🐭" },
+    { name:"Orsetto", emoji:"🐻" },
+    { name:"Panda", emoji:"🐼" },
+    { name:"Maialino", emoji:"🐷" },
+    { name:"Mucca", emoji:"🐮" },
+    { name:"Rana", emoji:"🐸" },
+    { name:"Scimmietta", emoji:"🐵" },
+    { name:"Pulcino", emoji:"🐥" },
+    { name:"Pinguino", emoji:"🐧" }
+  ],
+  case: [
+    { name:"Casa", emoji:"🏠" },
+    { name:"Villetta", emoji:"🏡" },
+    { name:"Gruppo di case", emoji:"🏘️" },
+    { name:"Casetta vecchia", emoji:"🏚️" },
+    { name:"Tenda", emoji:"⛺" },
+    { name:"Campo con tende", emoji:"🏕️" },
+    { name:"Scuola", emoji:"🏫" },
+    { name:"Fabbrica", emoji:"🏭" },
+    { name:"Castello", emoji:"🏰" }
+  ],
+  recinti: [
+    { name:"Recinto lavori", emoji:"🚧" },
+    { name:"Muro mattoni", emoji:"🧱" },
+    { name:"Roccia grande", emoji:"🪨" },
+    { name:"Ceppo di legno", emoji:"🪵" },
+    { name:"Pozzo / lago", emoji:"💧" },
+    { name:"Albero tagliato", emoji:"🪓" },
+    { name:"Cartello attenzione", emoji:"⚠️" },
+    { name:"Cartello stop", emoji:"🛑" },
+    { name:"Cancello", emoji:"🚪" }
+  ],
+  cielo: [
+    { name:"Sole", emoji:"☀️" },
+    { name:"Sole tra nuvole", emoji:"🌤️" },
+    { name:"Sole al tramonto", emoji:"🌇" },
+    { name:"Nuvola", emoji:"☁️" },
+    { name:"Nuvola e sole", emoji:"⛅" },
+    { name:"Nuvola carica", emoji:"🌥️" },
+    { name:"Pioggia", emoji:"🌧️" },
+    { name:"Temporale", emoji:"⛈️" },
+    { name:"Arcobaleno", emoji:"🌈" },
+    { name:"Luna", emoji:"🌙" },
+    { name:"Luna piena", emoji:"🌕" },
+    { name:"Stella", emoji:"⭐" },
+    { name:"Stelle cadenti", emoji:"🌠" }
+  ],
+  extra: [
+    { name:"Neve", emoji:"❄️" },
+    { name:"Neve che cade", emoji:"🌨️" },
+    { name:"Pupazzo di neve", emoji:"⛄" },
+    { name:"Regalo", emoji:"🎁" },
+    { name:"Palloncino", emoji:"🎈" },
+    { name:"Fuochi d'artificio", emoji:"🎆" },
+    { name:"Fuochi colorati", emoji:"🎇" },
+    { name:"Cuore rosso", emoji:"❤️" },
+    { name:"Cuore scintillante", emoji:"💖" },
+    { name:"Orsetto peluche", emoji:"🧸" },
+    { name:"Palla da calcio", emoji:"⚽" }
+  ],
+  veicoli: [
+    { name:"Auto", emoji:"🚗" },
+    { name:"SUV", emoji:"🚙" },
+    { name:"Autobus", emoji:"🚌" },
+    { name:"Camion", emoji:"🚚" },
+    { name:"Trattore", emoji:"🚜" },
+    { name:"Camion dei pompieri", emoji:"🚒" },
+    { name:"Ambulanza", emoji:"🚑" },
+    { name:"Treno", emoji:"🚆" },
+    { name:"Aereo", emoji:"✈️" },
+    { name:"Nave", emoji:"🚢" },
+    { name:"Barca a vela", emoji:"⛵" }
+  ]
+};
+
+const world = document.getElementById("world");
+const itemList = document.getElementById("item-list");
+const tabButtons = document.querySelectorAll(".tab-btn");
+let lastObject = null;
+
+// ====== COSTRUISCI LISTA OGGETTI ======
+function setCategory(cat){
+  tabButtons.forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.cat === cat);
+  });
+
+  itemList.innerHTML = "";
+  const arr = ITEMS[cat] || [];
+  arr.forEach(obj=>{
+    const row = document.createElement("div");
+    row.className = "item-btn";
+    row.onclick = () => addObject(obj);
+
+    const icon = document.createElement("div");
+    icon.className = "item-icon";
+    icon.textContent = obj.emoji;
+
+    const label = document.createElement("div");
+    label.className = "item-label";
+    label.textContent = obj.name;
+
+    row.appendChild(icon);
+    row.appendChild(label);
+    itemList.appendChild(row);
+  });
+}
+
+tabButtons.forEach(btn=>{
+  btn.addEventListener("click", ()=> setCategory(btn.dataset.cat));
+});
+
+// prima categoria
+setCategory("alberi");
+
+// ====== AGGIUNGI OGGETTO NEL MONDO ======
+function addObject(obj){
+  const el = document.createElement("div");
+  el.className = "world-object";
+
+  // per ora emoji; in futuro qui puoi mettere <img src="img/..." >
+  el.textContent = obj.emoji;
+
+  const wRect = world.getBoundingClientRect();
+  const startX = wRect.width/2 - 40;
+  const startY = wRect.height/2;
+  el.style.left = startX + "px";
+  el.style.top  = startY + "px";
+
+  world.appendChild(el);
+  makeDraggable(el, world);
+  lastObject = el;
+}
+
+// ====== RIMUOVI ULTIMO / SVUOTA ======
+function removeLast(){
+  if(lastObject && lastObject.parentNode === world){
+    world.removeChild(lastObject);
+    lastObject = null;
+  }else{
+    const objs = world.querySelectorAll(".world-object");
+    if(objs.length>0){
+      const el = objs[objs.length-1];
+      world.removeChild(el);
+    }
+  }
+}
+
+function clearWorld(){
+  const objs = world.querySelectorAll(".world-object");
+  objs.forEach(el=> el.remove());
+  lastObject = null;
+}
+
+// ====== DRAG (mouse + touch) ======
+function makeDraggable(el, container){
+  let dragging = false;
+  let offsetX = 0, offsetY = 0;
+
+  function getPos(event){
+    if(event.touches && event.touches[0]){
+      return { x:event.touches[0].clientX, y:event.touches[0].clientY };
+    }
+    return { x:event.clientX, y:event.clientY };
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    const pos = getPos(e);
+    const rect = container.getBoundingClientRect();
+    let x = pos.x - rect.left - offsetX;
+    let y = pos.y - rect.top  - offsetY;
+
+    const maxX = rect.width - el.offsetWidth;
+    const maxY = rect.height - el.offsetHeight;
+    if(x < -20) x = -20;
+    if(y < -20) y = -20;
+    if(x > maxX+20) x = maxX+20;
+    if(y > maxY+20) y = maxY+20;
+
+    el.style.left = x + "px";
+    el.style.top  = y + "px";
+
+    if(e.cancelable) e.preventDefault();
+  }
+
+  function onUp(){
+    dragging = false;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+    document.removeEventListener("touchmove", onMove);
+    document.removeEventListener("touchend", onUp);
+  }
+
+  function onDown(e){
+    const pos = getPos(e);
+    const rect = container.getBoundingClientRect();
+    const currentLeft = parseInt(el.style.left || "0",10);
+    const currentTop  = parseInt(el.style.top  || "0",10);
+
+    offsetX = pos.x - rect.left - currentLeft;
+    offsetY = pos.y - rect.top  - currentTop;
+
+    dragging = true;
+
+    document.addEventListener("mousemove", onMove, {passive:false});
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("touchmove", onMove, {passive:false});
+    document.addEventListener("touchend", onUp);
+
+    if(e.cancelable) e.preventDefault();
+  }
+
+  el.addEventListener("mousedown", onDown);
+  el.addEventListener("touchstart", onDown, {passive:false});
+}
+</script>
+</body>
+</html>
